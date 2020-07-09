@@ -29,5 +29,30 @@
       "status"
     ],
     "additionalProperties": false
+  },
+  "update": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100
+      },
+      "body": {
+        "type": "string"
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "active",
+          "passive",
+          "draft"
+        ]
+      }
+    },
+    "additionalProperties": false
   }
 }

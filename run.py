@@ -1,5 +1,5 @@
+import copy
 import decimal
-
 import jsonschema
 from bson.errors import InvalidId
 from flask import Flask, request, Response
@@ -35,10 +35,9 @@ def bson_to_json(o):
     return default(o)
 
 
-
 @app.route('/api/v1/posts', methods=['POST'])
 @app.validate('posts',
-              'create')  # hangi resource için bunu yapıyoruz ve dosyanın adı ile aynı olmalı, par2 => o dosya için hnagi schemayı kullancağız
+              'create')  # hangi resource için bunu yapıyoruz ve dosyanın adı ile aynı olmalı, par2 => o dosya için hangi schemayı kullancağız
 def create_post():
     body = request.json
 
@@ -69,7 +68,6 @@ def create_post():
     )
 
 
-
 @app.route('/api/v1/posts/<document_id>', methods=['GET'])
 def get_post(document_id):
     try:
@@ -89,6 +87,84 @@ def get_post(document_id):
             'err_msg': 'Document not found by given id: <{}>'.format(document_id),
             'err_code': 'errors.notFound'
         }), mimetype='application/json', status=404)
+
+    return Response(json.dumps(exist_document, default=bson_to_json), mimetype='application/json', status=200)
+
+
+@app.route('/api/v1/posts/<document_id>', methods=['DELETE'])
+def delete_post(document_id):
+    """if the document exists then delete it"""
+    try:
+        doc_id_as_obj_id = ObjectId(document_id)
+    except InvalidId as ex:
+        return Response(json.dumps({
+            'err_msg': 'Provided id is not valid ObjectId, please provide valid ObjectId',
+            'err_code': 'errors.badRequest'
+        }), mimetype='application/json', status=400)
+
+    exist_document = db.posts.find_one({
+        '_id': doc_id_as_obj_id
+    })
+    if not exist_document:
+        return Response(json.dumps({
+            'err_msg': 'Document not found by given id: <{}>'.format(document_id),
+            'err_code': 'errors.notFound'
+        }), mimetype='application/json', status=404)
+
+    # my_col = db["posts"]
+    # my_col.delete_one(exist_document)
+    db.posts.delete_one({
+        '_id': doc_id_as_obj_id
+    })
+    return Response(json.dumps({}), status=204)
+
+
+@app.route('/api/v1/posts/<document_id>', methods=['PUT'])
+@app.validate('posts', 'update')
+def update_post(document_id):
+    body = request.json
+
+    try:
+        doc_id_as_obj_id = ObjectId(document_id)
+    except InvalidId as ex:
+        return Response(json.dumps({
+            'err_msg': 'Provided id is not valid ObjectId, please provide valid ObjectId',
+            'err_code': 'errors.badRequest'
+        }), mimetype='application/json', status=400)
+
+    exist_document = db.posts.find_one({
+        '_id': doc_id_as_obj_id
+    })
+    if not exist_document:
+        return Response(json.dumps({
+            'err_msg': 'Document not found by given id: <{}>'.format(document_id),
+            'err_code': 'errors.notFound'
+        }), mimetype='application/json', status=404)
+
+    exist_document.pop("_id")
+    current_sys = exist_document.pop("sys")
+
+    old_exist_document = copy.deepcopy(exist_document)
+    exist_document.update(body)
+
+    if old_exist_document == exist_document:
+        return Response(json.dumps({
+            'err_msg': 'Document already exist in db',
+            'err_code': 'errors.identicalDocumentError'
+        }), mimetype='application/json', status=409)
+
+    current_sys["modified_at"] = datetime.datetime.utcnow()
+    current_sys["modified_by"] = "system"
+
+    exist_document["sys"] = current_sys
+
+    db.posts.update_one({
+        '_id': doc_id_as_obj_id
+    }, {
+        "$set": exist_document
+    })
+
+    exist_document["_id"] = document_id
 
     return Response(json.dumps(exist_document, default=bson_to_json), mimetype='application/json', status=200)
 
