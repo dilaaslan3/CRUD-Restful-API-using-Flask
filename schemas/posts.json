@@ -54,5 +54,17 @@
       }
     },
     "additionalProperties": false
+  },
+  "query": {
+    "type": "object",
+    "properties": {
+      "where": {
+        "type": "object"
+      },
+      "select": {
+        "type": "object"
+      }
+    },
+    "additionalProperties": false
   }
 }

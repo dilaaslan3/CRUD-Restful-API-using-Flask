@@ -9,6 +9,7 @@ import pymongo
 from flask_jsonschema_validator import JSONSchemaValidator
 from bson import ObjectId
 from bson.json_util import default
+import logging
 
 app = Flask(__name__)
 
@@ -36,8 +37,7 @@ def bson_to_json(o):
 
 
 @app.route('/api/v1/posts', methods=['POST'])
-@app.validate('posts',
-              'create')  # hangi resource için bunu yapıyoruz ve dosyanın adı ile aynı olmalı, par2 => o dosya için hangi schemayı kullancağız
+@app.validate('posts', 'create')
 def create_post():
     body = request.json
 
@@ -149,7 +149,7 @@ def update_post(document_id):
 
     if old_exist_document == exist_document:
         return Response(json.dumps({
-            'err_msg': 'Document already exist in db',
+            'err_msg': 'Document already same as the exist document',
             'err_code': 'errors.identicalDocumentError'
         }), mimetype='application/json', status=409)
 
@@ -167,6 +167,45 @@ def update_post(document_id):
     exist_document["_id"] = document_id
 
     return Response(json.dumps(exist_document, default=bson_to_json), mimetype='application/json', status=200)
+
+
+@app.route('/api/v1/posts/_query', methods=['POST'])
+@app.validate('posts', 'query')
+def query_post():
+    body = request.json
+    limit = int(request.args.get("limit", 200))
+    skip = int(request.args.get("skip", 0))
+
+    if limit > 200:
+        limit = 200
+    where = body.get("where", {})
+    select = body.get("select", {})  # selecti bulamazsa body de boş obje dön
+
+    if not select:
+        document_cursor = db.posts.find(where)
+    else:
+        values = select.values()
+        unique_values = set(values)
+
+        if len(unique_values) != 1:
+            return Response(json.dumps({
+                'err_msg': 'Projection cannot have a mix of inclusion and exclusion.',
+                'err_code': 'errors.badRequest'
+            }), mimetype='application/json', status=400)
+        document_cursor = db.posts.find(where, select)
+
+    document_cursor.limit(limit)
+    document_cursor.skip(skip)
+
+    documents = list(document_cursor)
+    envelop = {
+        "data": {
+            "items": documents,
+            "count": len(documents)
+        }
+    }
+
+    return Response(json.dumps(envelop, default=bson_to_json), mimetype='application/json', status=200)
 
 
 @app.errorhandler(jsonschema.ValidationError)
