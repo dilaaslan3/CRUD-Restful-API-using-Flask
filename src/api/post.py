@@ -6,12 +6,14 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from flask import request, Response
 from plugins.errors import DilaError
+from plugins.validator import validate_by
 from src.helpers.json_helpers import bson_to_json
+from src.schemas.posts import POST_SCHEMA
 
 
 def init_post_api(app):
     @app.route('/api/v1/posts', methods=['POST'])
-    @app.validate('posts', 'create')
+    @validate_by(POST_SCHEMA["create"])
     def create_post():
         body = request.json
 
@@ -53,16 +55,7 @@ def init_post_api(app):
                 status_code=400
             )
 
-        exist_document = app.db.posts.find_one({
-            '_id': doc_id_as_obj_id
-        })
-
-        if not exist_document:
-            raise DilaError(
-                err_msg='Document not found by given id: <{}>'.format(document_id),
-                err_code='errors.notFound',
-                status_code=404
-            )
+        exist_document = app.post_service.get_post(doc_id_as_obj_id, raise_exception=True) #soru6: ??
 
         return Response(json.dumps(exist_document, default=bson_to_json), mimetype='application/json', status=200)
 
@@ -94,7 +87,7 @@ def init_post_api(app):
         return Response(json.dumps({}), status=204)
 
     @app.route('/api/v1/posts/<document_id>', methods=['PUT'])
-    @app.validate('posts', 'update')
+    @validate_by(POST_SCHEMA["update"])
     def update_post(document_id):
         body = request.json
 
@@ -146,7 +139,7 @@ def init_post_api(app):
         return Response(json.dumps(exist_document, default=bson_to_json), mimetype='application/json', status=200)
 
     @app.route('/api/v1/posts/_query', methods=['POST'])
-    @app.validate('posts', 'query')
+    @validate_by(POST_SCHEMA["query"])
     def query_post():
         """
         postları sorgulamak/filtrelemek için kullanılır

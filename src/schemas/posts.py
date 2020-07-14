@@ -1,4 +1,4 @@
-{
+POST_SCHEMA = {
   "create": {
     "type": "object",
     "properties": {
@@ -28,7 +28,7 @@
       "is_active",
       "status"
     ],
-    "additionalProperties": false
+    "additionalProperties": False
   },
   "update": {
     "type": "object",
@@ -53,7 +53,7 @@
         ]
       }
     },
-    "additionalProperties": false
+    "additionalProperties": False
   },
   "query": {
     "type": "object",
@@ -65,6 +65,6 @@
         "type": "object"
       }
     },
-    "additionalProperties": false
+    "additionalProperties": False
   }
 }
