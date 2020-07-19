@@ -15,28 +15,30 @@ def init_post_api(app):
     @app.route('/api/v1/posts', methods=['POST'])
     @validate_by(POST_SCHEMA["create"])
     def create_post():
-        body = request.json
+        # body = request.json
+        #
+        # title = body["title"]
+        #
+        # exist_document = app.db.posts.find_one({
+        #     "title": title,
+        #     "is_active": True,
+        #     "status": "active"
+        # })
+        #
+        # if exist_document:
+        #     raise DilaError(
+        #         err_msg='Resource already exist in db with title: <{}>'.format(title),
+        #         err_code='errors.duplicateRecord',
+        #         status_code=409
+        #     )
+        #
+        # body['sys'] = {
+        #     'created_at': datetime.datetime.utcnow(),
+        #     'created_by': 'system'
+        # }
+        # app.db.posts.insert_one(body)
 
-        title = body["title"]
-
-        exist_document = app.db.posts.find_one({
-            "title": title,
-            "is_active": True,
-            "status": "active"
-        })
-
-        if exist_document:
-            raise DilaError(
-                err_msg='Resource already exist in db with title: <{}>'.format(title),
-                err_code='errors.duplicateRecord',
-                status_code=409
-            )
-
-        body['sys'] = {
-            'created_at': datetime.datetime.utcnow(),
-            'created_by': 'system'
-        }
-        app.db.posts.insert_one(body)
+        body = app.post_service.create_post(raise_exception=True)
 
         return Response(
             json.dumps(body, default=bson_to_json),
@@ -55,13 +57,14 @@ def init_post_api(app):
                 status_code=400
             )
 
-        exist_document = app.post_service.get_post(doc_id_as_obj_id, raise_exception=True) #soru6: ??
+        exist_document = app.post_service.get_post(doc_id_as_obj_id, raise_exception=True)  # soru6: ??
 
         return Response(json.dumps(exist_document, default=bson_to_json), mimetype='application/json', status=200)
 
     @app.route('/api/v1/posts/<document_id>', methods=['DELETE'])
     def delete_post(document_id):
-        """if the document exists then delete it"""
+        """burada sadece gelen doucment_id li bir document var mı kontrolü yapılır,"""
+        """validasyon işlemleri burada, database e erişme ve silme işlemleri post_service in içindeki delete_post ta gerçekleştirilir."""
         try:
             doc_id_as_obj_id = ObjectId(document_id)
         except InvalidId as ex:
@@ -71,19 +74,17 @@ def init_post_api(app):
                 status_code=400
             )
 
-        exist_document = app.db.posts.find_one({
-            '_id': doc_id_as_obj_id
-        })
-        if not exist_document:
-            raise DilaError(
-                err_msg='Document not found by given id: <{}>'.format(document_id),
-                err_code='errors.notFound',
-                status_code=404
-            )
-
-        app.db.posts.delete_one({
-            '_id': doc_id_as_obj_id
-        })
+        # exist_document = app.db.posts.find_one({
+        #     '_id': doc_id_as_obj_id
+        # })
+        # if not exist_document:
+        #     raise DilaError(
+        #         err_msg='Document not found by given id: <{}>'.format(document_id),
+        #         err_code='errors.notFound',
+        #         status_code=404
+        #     )
+        #
+        app.post_service.delete_post(doc_id_as_obj_id, raise_exception=True)
         return Response(json.dumps({}), status=204)
 
     @app.route('/api/v1/posts/<document_id>', methods=['PUT'])

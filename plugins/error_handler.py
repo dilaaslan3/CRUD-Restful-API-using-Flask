@@ -14,7 +14,7 @@ def init_error_handler(app):
         }), mimetype='application/json', status=400)
 
     @app.errorhandler(Exception) #soru9: 9. satırdaki aynı decoratorı? burda farkli bir parametre ile çalıştırdık neden Exception ile çalıştırdık?
-    def handleError(error): #soru10: error parametresi bize nerden ne şekilde nasıl dönüyor
+    def handleError(error): #soru10: error parametresi bize nerden ne şekilde nasıl geliyor
         if isinstance(error, DilaError):
             response = {
                 "err_msg": error.err_msg,
