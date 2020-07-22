@@ -3,6 +3,7 @@ import pymongo
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import request, Response
+from plugins.calculate_time import calculate_runtime
 from plugins.errors import DilaError
 from plugins.validator import validate_by
 from src.helpers.json_helpers import bson_to_json
@@ -23,6 +24,7 @@ def init_post_api(app):
         )
 
     @app.route('/api/v1/posts/<document_id>', methods=['GET'])
+    @calculate_runtime
     def get_post(document_id):
         try:
             doc_id_as_obj_id = ObjectId(document_id)
@@ -55,8 +57,6 @@ def init_post_api(app):
     @app.route('/api/v1/posts/<document_id>', methods=['PUT'])
     @validate_by(POST_SCHEMA["update"])
     def update_post(document_id):
-        body = request.json
-
         try:
             doc_id_as_obj_id = ObjectId(document_id)
         except InvalidId as ex:
