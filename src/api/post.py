@@ -110,37 +110,8 @@ def init_post_api(app):
         where = body.get("where", {})
         select = body.get("select", {})
 
-        if not select:
-            document_cursor = app.db.posts.find(where)
-        else:
-            values = select.values()
-            unique_values = set(values)
+        documents = app.post_service.query_post(where, select, limit, skip, sort_field, sort_by)
 
-            if len(unique_values) != 1:
-                raise DilaError(
-                    err_msg='Projection cannot have a mix of inclusion and exclusion.',
-                    err_code='errors.badRequest',
-                    status_code=400
-                )
-            document_cursor = app.db.posts.find(where, select)
-
-        document_cursor.limit(limit)
-        document_cursor.skip(skip)
-
-        if sort_field:
-            if sort_by == "asc":
-                sort_by = pymongo.ASCENDING
-            elif sort_by == "desc":
-                sort_by = pymongo.DESCENDING
-            else:
-                raise DilaError(
-                    err_msg='Please provide valid sort_by field: asc, desc.',
-                    err_code='errors.badRequest',
-                    status_code=400
-                )
-            document_cursor.sort([(sort_field, sort_by)])
-
-        documents = list(document_cursor)
         envelop = {
             "data": {
                 "items": documents,
